@@ -1,122 +1,101 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { Component, useEffect, useState } from "react";
+import { Shell } from "./components/Shell";
+import { StoreProvider } from "./store/Store";
+import Login from "./features/auth/Login";
+import Dashboard from "./features/dashboard/Dashboard";
+import Preparations from "./features/preparations/Preparations";
+import Profile from "./features/profile/Profile";
+import { Quotes, Requests } from "./features/sales/Sales";
+import Calendar from "./features/calendar/Calendar";
+import Clients from "./features/clients/Clients";
+import Finance from "./features/finance/Finance";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+const pages = {
+  inicio: Dashboard,
+  perfil: Profile,
+  preparaciones: Preparations,
+  solicitudes: Requests,
+  cotizaciones: Quotes,
+  calendario: Calendar,
+  clientes: Clients,
+  finanzas: Finance,
+};
+function Workspace() {
+  const [session, setSession] = useState(
+    () => sessionStorage.getItem("dieta-session") === "oferente-demo",
+  );
+  const [route, setRoute] = useState(() => ({
+    path: window.location.hash.slice(1) || "inicio",
+    revision: 0,
+  }));
+  useEffect(() => {
+    const listener = () => {
+      setRoute((previous) => ({
+        path: window.location.hash.slice(1) || "inicio",
+        revision: previous.revision + 1,
+      }));
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener("hashchange", listener);
+    return () => window.removeEventListener("hashchange", listener);
+  }, []);
+  const [page, itemId] = route.path.split("/");
+  const Page = pages[page] || Dashboard;
+  if (!session) return <Login onLogin={() => setSession(true)} />;
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <div
+      onClickCapture={(event) => {
+        const link = event.target.closest('a[href^="#"]');
+        if (link && link.getAttribute("href") === window.location.hash) {
+          event.preventDefault();
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        }
+      }}
+    >
+      <Shell
+        page={pages[page] ? page : "inicio"}
+        onLogout={() => {
+          sessionStorage.removeItem("dieta-session");
+          setSession(false);
+        }}
+      >
+        <Page key={`${route.path}:${route.revision}`} itemId={itemId} />
+      </Shell>
+    </div>
+  );
 }
-
-export default App
+class ErrorBoundary extends Component {
+  state = { error: false };
+  static getDerivedStateFromError() {
+    return { error: true };
+  }
+  render() {
+    if (this.state.error)
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-5 p-8">
+          <h1 className="text-2xl font-semibold">
+            No pudimos cargar esta vista
+          </h1>
+          <p className="text-sm text-muted">
+            Recarga la aplicación para volver a intentarlo.
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => window.location.reload()}
+          >
+            Recargar aplicación
+          </button>
+        </div>
+      );
+    return this.props.children;
+  }
+}
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <StoreProvider>
+        <Workspace />
+      </StoreProvider>
+    </ErrorBoundary>
+  );
+}
