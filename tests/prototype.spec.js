@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, saved } from "./fixtures.js";
 import fs from "node:fs/promises";
 import { financialData, money } from "../src/lib/domain.js";
 
@@ -18,11 +18,6 @@ async function go(page, path) {
   await page.evaluate((path) => {
     window.location.hash = path;
   }, path);
-}
-async function saved(page) {
-  return page.evaluate(() =>
-    JSON.parse(localStorage.getItem("dieta-saludable-v1")),
-  );
 }
 async function shot(page, path) {
   await fs.mkdir(`evidencias/${path.split("/").slice(0, -1).join("/")}`, {

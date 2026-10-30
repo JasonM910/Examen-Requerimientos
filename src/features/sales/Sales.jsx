@@ -61,9 +61,9 @@ export function Requests({ itemId }) {
     tablePage,
     Math.max(1, Math.ceil(filtered.length / 8)),
   );
-  function open(request) {
+  async function open(request) {
     if (request.state === "Nueva")
-      update((s) => ({
+      await update((s) => ({
         ...s,
         requests: s.requests.map((r) =>
           r.id === request.id ? { ...r, state: "En revisión" } : r,
@@ -600,7 +600,7 @@ export function QuoteComposer({ request, existing, onClose }) {
       ),
     );
   }
-  function save(status) {
+  async function save(status) {
     if (
       !lines.length ||
       count !== request.duration ||
@@ -660,7 +660,7 @@ export function QuoteComposer({ request, existing, onClose }) {
       address: request.address,
       zone: request.zone,
     };
-    update((s) => ({
+    const saved = await update((s) => ({
       ...s,
       quotes: existing
         ? s.quotes.map((q) => (q.id === existing.id ? quote : q))
@@ -671,6 +671,7 @@ export function QuoteComposer({ request, existing, onClose }) {
           : r,
       ),
     }));
+    if (!saved) return;
     if (status === "Enviada") {
       setSent(quote);
       notify(
@@ -943,8 +944,8 @@ export function QuoteDetail({ quote, onClose, justSent = false }) {
   const firstDelivery = state.deliveries.find(
     (d) => d.agreementId === agreement?.id,
   );
-  function decline() {
-    update((s) => ({
+  async function decline() {
+    const saved = await update((s) => ({
       ...s,
       quotes: s.quotes.map((q) =>
         q.id === quote.id ? { ...q, state: "Rechazada" } : q,
@@ -953,6 +954,7 @@ export function QuoteDetail({ quote, onClose, justSent = false }) {
         r.id === quote.requestId ? { ...r, state: "En revisión" } : r,
       ),
     }));
+    if (!saved) return;
     notify(
       "Respuesta simulada: el cliente rechazó la propuesta. Puedes cotizar nuevamente.",
     );
@@ -1093,8 +1095,8 @@ export function QuoteDetail({ quote, onClose, justSent = false }) {
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               className="btn btn-primary"
-              onClick={() => {
-                if (acceptQuote(quote.id)) {
+              onClick={async () => {
+                if (await acceptQuote(quote.id)) {
                   setResponse(false);
                   onClose();
                   window.location.hash = `#cotizaciones/${quote.id}`;

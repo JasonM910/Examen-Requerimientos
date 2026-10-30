@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test tests/domain.test.js && playwright test",
+    "test": "node --test tests/domain.test.js tests/database.test.js && playwright test",
     "test:e2e": "playwright test",
     "test:domain": "node --test tests/domain.test.js",
+    "test:database": "node --test tests/database.test.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -389,21 +389,22 @@ function DeliveryDetail({ delivery, onClose }) {
   const [time, setTime] = useState(delivery.time);
   const [error, setError] = useState("");
   const index = DELIVERY_STATES.indexOf(delivery.state);
-  function advance() {
+  async function advance() {
     const next = DELIVERY_STATES[index + 1];
-    update((s) => ({
+    const saved = await update((s) => ({
       ...s,
       deliveries: s.deliveries.map((d) =>
         d.id === delivery.id ? { ...d, state: next } : d,
       ),
     }));
+    if (!saved) return;
     notify(
       next === "Entregado"
         ? "Entrega completada. El ingreso se refleja en Finanzas."
         : `Entrega actualizada: ${next}.`,
     );
   }
-  function save(e) {
+  async function save(e) {
     e.preventDefault();
     if (date < TODAY) {
       setError("Selecciona una fecha actual o futura.");
@@ -416,7 +417,7 @@ function DeliveryDetail({ delivery, onClose }) {
       setError("La fecha seleccionada no tiene cupos disponibles.");
       return;
     }
-    update((s) => {
+    const saved = await update((s) => {
       const deliveries = s.deliveries.map((d) =>
         d.id === delivery.id ? { ...d, date, time } : d,
       );
@@ -434,6 +435,7 @@ function DeliveryDetail({ delivery, onClose }) {
         ),
       };
     });
+    if (!saved) return;
     setReschedule(false);
     notify("Entrega reprogramada. El acuerdo refleja sus nuevas fechas.");
   }

@@ -153,8 +153,8 @@ export default function Login({ onLogin }) {
             </button>
           </div>
           <p className="mt-6 text-[10px] leading-relaxed text-muted">
-            Acceso simulado y exclusivo del oferente. Los cambios se guardan en
-            este navegador; no se almacenan contraseñas.
+            Acceso simulado y exclusivo del oferente. Los cambios se guardan
+            localmente; no se almacenan contraseñas.
           </p>
         </div>
       </section>

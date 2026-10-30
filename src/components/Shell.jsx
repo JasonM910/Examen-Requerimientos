@@ -34,7 +34,7 @@ const items = [
   ["perfil", "Mi perfil", Settings2],
 ];
 export function Shell({ page, children, onLogout }) {
-  const { state, update, toast, setToast, storageWarning } = useStore();
+  const { state, update, toast, setToast, saveStatus, saveError } = useStore();
   const [mobile, setMobile] = useState(false);
   const [notifications, setNotifications] = useState(false);
   const [help, setHelp] = useState(false);
@@ -316,13 +316,12 @@ export function Shell({ page, children, onLogout }) {
             </a>
           </div>
         </header>
-        {storageWarning && (
+        {saveError && (
           <div
             role="alert"
             className="bg-amber-50 px-6 py-3 text-xs text-amber-800"
           >
-            El navegador no permite guardar los cambios. Se conservarán durante
-            esta sesión.
+            {saveError}
           </div>
         )}
         <main
@@ -334,7 +333,22 @@ export function Shell({ page, children, onLogout }) {
             <span>
               © 2026 Dieta Saludable. Hecho para alimentar el bienestar.
             </span>
-            <span>Prototipo local · Datos de demostración · 29 oct 2026</span>
+            <span className="flex flex-wrap items-center gap-3">
+              <span
+                data-testid="save-status"
+                aria-live="polite"
+                className={
+                  saveStatus === "error" ? "text-red-600" : "text-forest"
+                }
+              >
+                {saveStatus === "saving"
+                  ? "Guardando cambios…"
+                  : saveStatus === "error"
+                    ? "Cambios sin guardar"
+                    : "Cambios guardados"}
+              </span>
+              <span>Prototipo local · Datos de demostración · 29 oct 2026</span>
+            </span>
           </footer>
         </main>
       </div>
@@ -401,10 +415,11 @@ export function Shell({ page, children, onLogout }) {
               </a>
             ))}
             <p className="rounded-lg border border-line p-4 text-xs leading-relaxed text-muted">
-              Esta demostración usa almacenamiento local. El inicio de sesión,
-              las notificaciones y las respuestas del cliente se simulan. No
-              incluye servidor, cifrado de credenciales, transacciones ACID ni
-              garantías de rendimiento de una base de datos.
+              Los cambios se guardan en un archivo local y se recuperan al
+              volver a abrir la aplicación. El inicio de sesión, las
+              notificaciones y las respuestas del cliente se simulan. No incluye
+              cifrado de credenciales ni garantías de una base de datos de
+              producción.
             </p>
           </div>
         </Modal>

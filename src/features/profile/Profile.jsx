@@ -47,7 +47,7 @@ export default function Profile() {
       ? ""
       : "Ingresa un teléfono válido (mínimo 8 dígitos).",
   };
-  function save(e) {
+  async function save(e) {
     e.preventDefault();
     setTouched({ name: true, owner: true, email: true, phone: true });
     const peak = Math.max(
@@ -82,10 +82,11 @@ export default function Profile() {
       );
       return;
     }
-    update((s) => ({
+    const saved = await update((s) => ({
       ...s,
       profile: { ...draft, name: draft.name.trim(), owner: draft.owner.trim() },
     }));
+    if (!saved) return;
     setError("");
     notify(
       "Tu perfil y tus políticas se guardaron. Se incluirán en las próximas cotizaciones.",
@@ -493,9 +494,9 @@ export default function Profile() {
             </button>
             <button
               className="btn btn-danger"
-              onClick={() => {
+              onClick={async () => {
                 const seed = createSeed();
-                update(seed);
+                if (!(await update(seed))) return;
                 setDraft(seed.profile);
                 setReset(false);
                 notify("Demostración restablecida.");

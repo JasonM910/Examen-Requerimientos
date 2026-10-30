@@ -25,13 +25,21 @@ npm run preview
 
 ## Datos y funcionamiento
 
-Los datos iniciales corresponden al 29 de octubre de 2026. Se incluyen planes veganos, sin gluten, bajos en calorías y deportivos, con solicitudes y servicios históricos vinculados. Los cambios se conservan en `localStorage`; la sesión se guarda en `sessionStorage`. En **Mi perfil → Reiniciar demostración** puedes recuperar los ejemplos originales.
+Todos los datos se guardan en **`data/db.json`**: perfil, preparaciones, clientes, solicitudes, cotizaciones, acuerdos y entregas. Cada modificación se escribe en ese archivo antes de mostrar la confirmación de guardado. Los cambios permanecen al cerrar la página, cambiar de navegador o reiniciar el servidor local.
+
+Ejecuta la aplicación con `npm run dev` o, después de compilar, con `npm run preview`. Ambos comandos incluyen el servicio local que lee y escribe el JSON. Abrir `dist/index.html` directamente o servir `dist/` con un servidor estático no permite actualizar el archivo.
+
+Puedes editar `data/db.json` con la aplicación cerrada y volver a abrirla para cargar los cambios. Si se modifica mientras una página sigue abierta, los guardados desactualizados se rechazan para conservar la versión más reciente. Un error de formato se muestra sin reemplazar el archivo. Conviene respaldar el JSON antes de editarlo manualmente.
+
+Los datos iniciales corresponden al 29 de octubre de 2026 y se generan desde `src/data/seed.js`. En **Mi perfil → Reiniciar demostración** puedes reemplazar el contenido del JSON por los ejemplos originales. La sesión de demostración se guarda en `sessionStorage`; las credenciales no se almacenan en el JSON.
+
+Si tenías cambios de la versión anterior en `localStorage`, se importan automáticamente la primera vez que abres la aplicación, siempre que el JSON todavía contenga los datos iniciales. Después, el archivo es la fuente de datos.
 
 Desde una solicitud, prepara y envía una cotización. En su detalle, **Simular respuesta del cliente → Aceptar propuesta** crea un acuerdo y una entrega por cada día consecutivo del plan. La aceptación valida vigencia, cobertura y cupo de todas las fechas antes de programar el acuerdo. En el calendario puedes cambiar estados y ajustar horarios. Los ingresos corresponden a entregas completadas según su fecha, y se diferencian del valor completo de un acuerdo.
 
 Los precios se calculan con céntimos enteros. Las cotizaciones conservan sus precios, ingredientes y políticas originales aunque cambie el catálogo o el perfil. La baja de preparaciones cambia su estado a Inactivo y conserva las referencias históricas.
 
-La autenticación, el envío, las notificaciones y las respuestas del cliente son simulaciones locales. Este prototipo no incluye servidor, comunicaciones reales, almacenamiento seguro de credenciales, transacciones ACID ni garantías de rendimiento de base de datos.
+La autenticación, el envío, las notificaciones y las respuestas del cliente son simulaciones. El servicio local de persistencia usa un archivo JSON; no es un backend de producción e incluye únicamente lectura, validación y guardado de los datos del prototipo.
 
 ## Pruebas y evidencias
 
@@ -42,7 +50,7 @@ npx playwright install chromium
 npm test
 ```
 
-`npm test` ejecuta las pruebas del dominio y los recorridos de Playwright. Playwright inicia Vite en `http://127.0.0.1:4173`, o reutiliza ese servidor si ya está disponible. Cada prueba usa un navegador aislado, sin modificar los datos de tu sesión habitual.
+`npm test` ejecuta las pruebas de dominio, persistencia y los recorridos de Playwright. Se verifica el guardado en disco, el reinicio del servidor, la reapertura sin datos en el navegador, los conflictos y los errores de escritura. Playwright inicia su propio Vite en `http://127.0.0.1:4175` y usa un JSON temporal separado: las pruebas no modifican `data/db.json`.
 
 Las capturas se generan en:
 
@@ -55,4 +63,4 @@ También se incluyen vistas del resumen y de la interfaz móvil. Los reportes de
 
 ## Organización
 
-`src/features/` agrupa las pantallas por funcionalidad; `src/components/` contiene los elementos compartidos, `src/store/` administra el estado local, `src/data/seed.js` define los ejemplos relacionados y `src/lib/domain.js` reúne cálculos, fechas y validaciones. Las fotografías de demostración se incluyen en `public/images/` para evitar depender de su carga externa.
+`src/features/` agrupa las pantallas por funcionalidad; `src/components/` contiene los elementos compartidos, `src/store/` administra el estado, `src/lib/database.js` conecta con el servicio local de `server/json-database.js` y `data/db.json` conserva la información. `src/data/seed.js` define los ejemplos para inicializar o restablecer los datos y `src/lib/domain.js` reúne cálculos, fechas y validaciones. Las fotografías de demostración se incluyen en `public/images/`.

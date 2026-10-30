@@ -54,9 +54,9 @@ export default function Preparations({ itemId }) {
       (category === "Todas" || p.category === category) &&
       (status === "Todas" || p.state === status),
   );
-  function save(value) {
+  async function save(value) {
     const exists = Boolean(value.id);
-    update((s) => ({
+    const saved = await update((s) => ({
       ...s,
       preparations: exists
         ? s.preparations.map((p) => (p.id === value.id ? value : p))
@@ -65,6 +65,7 @@ export default function Preparations({ itemId }) {
             { ...value, id: `P-${Date.now().toString().slice(-7)}` },
           ],
     }));
+    if (!saved) return;
     setEditing(null);
     notify(
       exists
@@ -72,8 +73,8 @@ export default function Preparations({ itemId }) {
         : "Nueva preparación publicada en tu catálogo.",
     );
   }
-  function toggleState() {
-    update((s) => ({
+  async function toggleState() {
+    const saved = await update((s) => ({
       ...s,
       preparations: s.preparations.map((p) =>
         p.id === toggle.id
@@ -81,6 +82,7 @@ export default function Preparations({ itemId }) {
           : p,
       ),
     }));
+    if (!saved) return;
     notify(
       toggle.state === "Activo"
         ? "Preparación dada de baja. Su historial se conserva."

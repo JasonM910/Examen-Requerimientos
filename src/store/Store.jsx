@@ -1,39 +1,80 @@
-import { createContext, useContext, useState } from "react";
-import { createSeed } from "../data/seed";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { acceptanceError, addDays, scheduledDeliveries } from "../lib/domain";
+import {
+  loadDatabase,
+  migrateBrowserData,
+  saveDatabase,
+} from "../lib/database";
 
 const Context = createContext(null);
-const KEY = "dieta-saludable-v1";
-function readState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY));
-    if (saved?.profile?.id && Array.isArray(saved.deliveries)) return saved;
-  } catch {
-    /* Recreate demo if the saved state is invalid. */
-  }
-  return createSeed();
-}
 export function StoreProvider({ children }) {
-  const [state, setState] = useState(readState);
+  const [state, setState] = useState(null);
+  const current = useRef(null);
+  const revision = useRef(null);
+  const writing = useRef(false);
+  const [attempt, setAttempt] = useState(0);
+  const [loadError, setLoadError] = useState("");
   const [toast, setToast] = useState(null);
-  const [storageWarning, setStorageWarning] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("saved");
+  const [saveError, setSaveError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    loadDatabase(controller.signal)
+      .then((database) => migrateBrowserData(database, controller.signal))
+      .then((database) => {
+        if (controller.signal.aborted) return;
+        current.current = database.state;
+        revision.current = database.revision;
+        setState(database.state);
+        setLoadError("");
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) setLoadError(error.message);
+      });
+    return () => controller.abort();
+  }, [attempt]);
+  useEffect(() => {
+    const preventUnsavedClose = (event) => {
+      if (!writing.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", preventUnsavedClose);
+    return () =>
+      window.removeEventListener("beforeunload", preventUnsavedClose);
+  }, []);
   function notify(message, kind = "success") {
     setToast({ message, kind, id: Date.now() });
   }
-  function update(updater) {
-    setState((previous) => {
-      const next = typeof updater === "function" ? updater(previous) : updater;
-      try {
-        localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        setTimeout(() => setStorageWarning(true), 0);
-      }
-      return next;
-    });
+  async function update(updater) {
+    if (writing.current) {
+      notify("Espera a que termine el guardado actual.", "error");
+      return false;
+    }
+    writing.current = true;
+    setSaveStatus("saving");
+    setSaveError("");
+    try {
+      const next =
+        typeof updater === "function" ? updater(current.current) : updater;
+      const saved = await saveDatabase(next, revision.current);
+      current.current = saved.state;
+      revision.current = saved.revision;
+      setState(saved.state);
+      setSaveStatus("saved");
+      return true;
+    } catch (error) {
+      setSaveError(error.message);
+      setSaveStatus("error");
+      notify(error.message, "error");
+      return false;
+    } finally {
+      writing.current = false;
+    }
   }
-  function acceptQuote(id) {
-    const quote = state.quotes.find((q) => q.id === id);
-    const error = acceptanceError(quote, state);
+  async function acceptQuote(id) {
+    const quote = current.current.quotes.find((q) => q.id === id);
+    const error = acceptanceError(quote, current.current);
     if (error) {
       notify(error, "error");
       return false;
@@ -49,7 +90,7 @@ export function StoreProvider({ children }) {
       mode: quote.mode,
       total: quote.total,
     };
-    update((s) => ({
+    const saved = await update((s) => ({
       ...s,
       quotes: s.quotes.map((q) =>
         q.id === id ? { ...q, state: "Aceptada" } : q,
@@ -60,11 +101,34 @@ export function StoreProvider({ children }) {
       agreements: [...s.agreements, agreement],
       deliveries: [...s.deliveries, ...scheduledDeliveries(quote, agreementId)],
     }));
+    if (!saved) return false;
     notify(
       `Aceptación simulada. ${agreement.id} creado con ${quote.duration} entregas.`,
     );
     return true;
   }
+  if (!state)
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-canvas p-8 text-center">
+        <h1 className="text-xl font-semibold">
+          {loadError ? "No pudimos abrir los datos" : "Cargando tu espacio…"}
+        </h1>
+        <p className="max-w-lg text-sm leading-6 text-muted">
+          {loadError || "Leyendo la información guardada."}
+        </p>
+        {loadError && (
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setLoadError("");
+              setAttempt((value) => value + 1);
+            }}
+          >
+            Reintentar
+          </button>
+        )}
+      </main>
+    );
   return (
     <Context.Provider
       value={{
@@ -74,7 +138,8 @@ export function StoreProvider({ children }) {
         acceptQuote,
         toast,
         setToast,
-        storageWarning,
+        saveStatus,
+        saveError,
       }}
     >
       {children}

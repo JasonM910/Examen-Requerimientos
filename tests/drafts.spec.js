@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, saved } from "./fixtures.js";
 
 test("Borradores recuperables, validación de duración, rechazo y políticas históricas", async ({
   page,
@@ -20,9 +20,7 @@ test("Borradores recuperables, validación de duración, rechazo y políticas hi
   await page.getByLabel("Días preparación 1", { exact: true }).fill("3");
   await page.getByRole("button", { name: "Guardar borrador" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  const draft = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem("dieta-saludable-v1")).quotes.at(-1),
-  );
+  const draft = (await saved(page)).quotes.at(-1);
   expect(draft.state).toBe("Borrador");
   await page.evaluate(() => {
     window.location.hash = "cotizaciones";
@@ -60,9 +58,7 @@ test("Borradores recuperables, validación de duración, rechazo y políticas hi
     .click();
   await page.getByRole("button", { name: "Rechazar propuesta" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  const state = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem("dieta-saludable-v1")),
-  );
+  const state = await saved(page);
   expect(state.quotes.filter((q) => q.requestId === "SOL-024")).toHaveLength(1);
   expect(state.quotes.find((q) => q.id === draft.id).state).toBe("Rechazada");
   expect(state.requests.find((r) => r.id === "SOL-024").state).toBe(
